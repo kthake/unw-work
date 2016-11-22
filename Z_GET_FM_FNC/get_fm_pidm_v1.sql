@@ -53,12 +53,12 @@ BEGIN
         END IF;
       
         --first get org code at the input level from position and fiscal year
-        SELECT decode(i_level,'1',o1.ORGANIZATION_LEVEL_1,
-                              '2',o1.ORGANIZATION_LEVEL_2,
-                              '3',o1.ORGANIZATION_LEVEL_3,
-                              '4',o1.ORGANIZATION_LEVEL_4),
-               o1.CHART_OF_ACCOUNTS
-        INTO l_org,
+        SELECT distinct decode(i_level,'1',o1.ORGANIZATION_LEVEL_1,
+                                       '2',o1.ORGANIZATION_LEVEL_2,
+                                       '3',o1.ORGANIZATION_LEVEL_3,
+                                       '4',o1.ORGANIZATION_LEVEL_4),
+                        o1.CHART_OF_ACCOUNTS
+        INTO l_org,S
              l_coa
         FROM ODSMGR.MPT_POSN_LABOR_DIST p1
               inner join ODSMGR.MFT_ORGN_HIERARCHY o1
@@ -70,11 +70,11 @@ BEGIN
     --END POSN TYPE
     
     ELSE --BEGIN ORGN TYPE
-      SELECT decode(i_level,'1',o2.ORGANIZATION_LEVEL_1,
-                            '2',o2.ORGANIZATION_LEVEL_2,
-                            '3',o2.ORGANIZATION_LEVEL_3,
-                            '4',o2.ORGANIZATION_LEVEL_4),
-             o2.CHART_OF_ACCOUNTS
+      SELECT distinct decode(i_level,'1',o2.ORGANIZATION_LEVEL_1,
+                                     '2',o2.ORGANIZATION_LEVEL_2,
+                                     '3',o2.ORGANIZATION_LEVEL_3,
+                                     '4',o2.ORGANIZATION_LEVEL_4),
+                      o2.CHART_OF_ACCOUNTS
       INTO l_org,
            l_coa
       FROM ODSMGR.MFT_ORGN_HIERARCHY o2            
