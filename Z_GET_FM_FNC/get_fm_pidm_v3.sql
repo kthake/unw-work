@@ -31,19 +31,26 @@ IS
     l_pidm NUMBER;
 
 CURSOR a IS
-  SELECT *
+  SELECT decode(i_level,'1',o.ORGANIZATION_LEVEL_1,
+                        '2',o.ORGANIZATION_LEVEL_2,
+                        '3',o.ORGANIZATION_LEVEL_3,
+                        '4',o.ORGANIZATION_LEVEL_4),
+         o.CHART_OF_ACCOUNTS
   FROM (
     SELECT POSITION_ORGANIZATION,
            CHART_OF_ACCOUNTS,
            PERCENTAGE,
-           row_number() over (order by PERCENTAGE desc, POSITION_ORGANIZATION) "ROW_NUM",
-           rowid "ROW_ID"
-    FROM ODSMGR.MPT_POSN_LABOR_DIST p1
-    WHERE p1.FISCAL_YEAR = l_fsyr
-          and p1.POSITION = i_parm )
+           row_number() over (order by PERCENTAGE desc, POSITION_ORGANIZATION) "ROW_NUM"
+    FROM ODSMGR.MPT_POSN_LABOR_DIST
+    WHERE FISCAL_YEAR = l_fsyr
+          and POSITION = i_parm ) p
+    inner join ODSMGR.MFT_ORGN_HIERARCHY o
+    on o.ORGANIZATION_CODE = p.POSITION_ORGANIZATION
+    and o.CHART_OF_ACCOUNTS = p.CHART_OF_ACCOUNTS
+    
   WHERE ROW_NUM = 1;
   
-  --internal functions
+  --internal function
   FUNCTION GET_FM_PIDM_FNC(
       p_org IN VARCHAR2,
       p_coa IN VARCHAR2 )
@@ -82,20 +89,11 @@ BEGIN
      --BEGIN POSN TYPE
     IF i_type = 'POSN'
       THEN                
-          SELECT DISTINCT decode(i_level,'1',o1.ORGANIZATION_LEVEL_1,
-                                         '2',o1.ORGANIZATION_LEVEL_2,
-                                         '3',o1.ORGANIZATION_LEVEL_3,
-                                         '4',o1.ORGANIZATION_LEVEL_4),
-                          o1.CHART_OF_ACCOUNTS
-          INTO l_org,
-               l_coa
-          FROM ODSMGR.MPT_POSN_LABOR_DIST p1
-                inner join ODSMGR.MFT_ORGN_HIERARCHY o1
-                on o1.CHART_OF_ACCOUNTS = p1.CHART_OF_ACCOUNTS
-                and o1.ORGANIZATION_CODE = p1.POSITION_ORGANIZATION
-                and o1.ORGANIZATION_STATUS = 'A'
-          WHERE p1.FISCAL_YEAR = l_fsyr
-                and p1.POSITION = i_parm;
+          OPEN a;
+          FETCH a INTO l_org, l_coa;
+          CLOSE a;
+    --END POSN TYPE
+    --BEGIN ORGN TYPE
       ELSE  
           SELECT DISTINCT decode(i_level,'1',o2.ORGANIZATION_LEVEL_1,
                                          '2',o2.ORGANIZATION_LEVEL_2,
@@ -108,17 +106,12 @@ BEGIN
           WHERE o2.ORGANIZATION_STATUS = 'A'
                 and o2.CHART_OF_ACCOUNTS = i_coa
                 and o2.ORGANIZATION_CODE = i_parm;
+    --END ORGN TYPE
     END IF;
     
     l_pidm := GET_FM_PIDM_FNC(l_org,l_coa);
 
-    RETURN l_pidm;
   END IF;
---    EXCEPTION WHEN TOO_MANY_ROWS 
---      THEN OPEN a;
---           FETCH a INTO l_org, l_coa;
---           CLOSE a;
---      l_pidm := GET_FM_PIDM_FNC(l_org,l_coa);
   
   RETURN l_pidm;
    
