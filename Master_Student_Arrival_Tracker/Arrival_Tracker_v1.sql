@@ -1,9 +1,11 @@
-select a1.PERSON_UID,
+select distinct
+       a1.PERSON_UID,
        a1.DATA_ORIGIN,
        decode(substr(a1.DATA_ORIGIN,1,1),1,'Registered Trad',
                                          2,'Registered PSOC',
                                          3,'Deposited Potential PSOC',
-                                         4,'Deposited but not registered') "DATA_ORIGIN_DESC",
+                                         4,'Deposited but not registered',
+                                         5,'Not returned') "DATA_ORIGIN_DESC",
        a1.ID,
        a1.NAME_LFMI,
        a1.GENDER,
@@ -26,14 +28,14 @@ from
 --------------------------------------------------------------------------START a1
   (
   select a.PERSON_UID,
-         listagg(a.DATA_ORIGIN,'; ') within group (order by a.DATA_ORIGIN asc) over (partition by a.PERSON_UID) "DATA_ORIGIN",
+         listagg(a.DATA_ORIGIN,';') within group (order by a.DATA_ORIGIN asc) over (partition by a.PERSON_UID) "DATA_ORIGIN",
          --RMS_ID
          MGKFUNC.F_GET_PERSON_INFO(a.PERSON_UID,'ID') "ID",
          p.FULL_NAME_LFMI "NAME_LFMI",
          p.GENDER,
          p.BIRTH_DATE,
-         substr(listagg(a.STUDENT_TYPE,'; ') within group (order by a.STUDENT_TYPE asc) over (partition by a.PERSON_UID),2,1) "STUDENT_TYPE",
-         substr(listagg(a.COLLEGE,'; ') within group (order by a.COLLEGE asc) over (partition by a.PERSON_UID),2,2) "COLLEGE",
+         substr(listagg(a.STUDENT_TYPE,';') within group (order by a.STUDENT_TYPE asc) over (partition by a.PERSON_UID),2,1) "STUDENT_TYPE",
+         substr(listagg(a.COLLEGE,';') within group (order by a.COLLEGE asc) over (partition by a.PERSON_UID),2,2) "COLLEGE",
          ODSMGR.Z_GET_EMAIL_FNC(a.PERSON_UID,'NWC') "UNW_EMAIL",
          NWC.Z_GET_CURRENT_PHONE_FNC(a.PERSON_UID,'MOBL') "CELL_PHONE",
          NWC.Z_GET_CONCAT_ADDR_UNWSP_PKG.Z_GET_CURR_ADDR_OF_TYPE_FNC(a.PERSON_UID,'PR') "PR_ADDRESS",
@@ -74,32 +76,7 @@ from
                 or ( z.COLLEGE = 'DE' and z.TRAD_CREDITS > 0 ) )
           and z.PRIMARY_PROGRAM_IND = 'Y'
           and z.WITHDRAWN_IND = 'N'
-    
-    
-    select distinct z.PERSON_UID,
-                        '3'||z.STUDENT_TYPE "STUDENT_TYPE",
-                        '3'||z.COLLEGE "COLLEGE",
-                        z.ACADEMIC_PERIOD_MOD,
-                        5  "DATA_ORIGIN"
-        from ODSMGR.Z_ACADEMIC_STUDY_VW z
-        
-              left outer join ODSMGR.Z_ACADEMIC_STUDY_VW z1
-              on z1.PERSON_UID = z.PERSON_UID
-              and z1.ACADEMIC_PERIOD_MOD = '20162'
-
-
-        where z.ACADEMIC_PERIOD_MOD = '20161'
-              and z.COLLEGE = 'TR'
-              and z1.PERSON_UID is null
-              and z.PRIMARY_PROGRAM_IND = 'Y'
-              and z.WITHDRAWN_IND = 'N'
-              and z.COMPLETION_IND = 'N'
-              and z.STUDENT_TYPE <> 'O'
-              and z.PROGRAM <> 'ADDTL'
-  
-    
-    
-    
+       
     union
     
     --GET NEW STUDENTS THAT MAY NOT BE REGISTERED IN TRAD AND POTENTIAL PSOC STUDENTS
@@ -121,6 +98,30 @@ from
                 or (aa.COLLEGE = 'DE' and att.PERSON_UID is not null ) )
           and aa.LATEST_DECISION between '35' and '80'
           and substr(aa.LATEST_DECISION,1,1) <> '5'
+          
+    union
+    
+    select distinct z.PERSON_UID,
+                        '3'||z.STUDENT_TYPE "STUDENT_TYPE",
+                        '3'||z.COLLEGE "COLLEGE",
+                        z.ACADEMIC_PERIOD_MOD,
+                        5  "DATA_ORIGIN"
+    from ODSMGR.Z_ACADEMIC_STUDY_VW z
+    
+          left outer join ODSMGR.Z_ACADEMIC_STUDY_VW z1
+          on z1.PERSON_UID = z.PERSON_UID
+          and z1.ACADEMIC_PERIOD_MOD = '20162'
+
+
+    where z.ACADEMIC_PERIOD_MOD = '20161'
+          and z.COLLEGE = 'TR'
+          and z1.PERSON_UID is null
+          and z.PRIMARY_PROGRAM_IND = 'Y'
+          and z.WITHDRAWN_IND = 'N'
+          and ( z.COMPLETION_IND = 'N'
+                or z1.PERSON_UID is null )
+          and z.STUDENT_TYPE <> 'O'
+          and z.PROGRAM <> 'ADDTL'
     ) a
 --------------------------------------------------------------------------END a
 
