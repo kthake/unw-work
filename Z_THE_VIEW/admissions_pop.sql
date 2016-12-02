@@ -11,7 +11,7 @@ from
   from ODSMGR.Z_ADMISSIONS_DECISION_TBL
   where LATEST_APPLICATION_IND = 'Y'
   )
-pivot (max(DECISION_DATE) for DECISION in ('03' as D_03,
+pivot (min(nvl(DECISION_DATE,to_date('01/01/2999','mm/dd/yyyy') )) for DECISION in ('03' as D_03,
                                            '05' as D_05,
                                            '07' as D_07,
                                            '08' as D_08,
@@ -37,4 +37,5 @@ pivot (max(DECISION_DATE) for DECISION in ('03' as D_03,
                                            '94' as D_94,
                                            '97' as D_97) ) a
                                            
+                                           where academic_period_mod = '20161'
        

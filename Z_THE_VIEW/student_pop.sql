@@ -1,5 +1,6 @@
 with reg as (
-            select a.*,
+            select /*+ MATERIALIZE */  
+                  a.*,
                   case when AUDIT_COUNT > 0 and REGISTERED_COUNT = 0
                        then 'Y'
                   end "AUDIT_ONLY_IND",
@@ -48,7 +49,8 @@ with reg as (
             ),
             
      adm as (
-            select a.*,
+            select /*+ MATERIALIZE */  
+                   a.*,
                    to_date('01/01/2999','mm/dd/yyyy') "END_OF_TIME"
             from
               (
@@ -90,7 +92,10 @@ with reg as (
                   ) a
             )
 
-select base.*,
+select base.PERSON_UID,
+       p.ID,
+       base.ACADEMIC_PERIOD_MOD,
+       adm.COLLEGE,
        --nvl2(reg.PERSON_UID,'REG','ADM') "DATA_ORIGIN",
        p.GENDER,
        p.BIRTH_DATE,
@@ -112,10 +117,10 @@ from
   left outer join ODSMGR.Z_PERSON_NAME_VW p
   on p.PERSON_UID = base.PERSON_UID
   
---  left outer join reg
---  on reg.PERSON_UID = base.PERSON_UID
---  and reg.ACADEMIC_PERIOD_MOD = base.ACADEMIC_PERIOD_MOD
---  
+  left outer join reg
+  on reg.PERSON_UID = base.PERSON_UID
+  and reg.ACADEMIC_PERIOD_MOD = base.ACADEMIC_PERIOD_MOD
+  
   left outer join adm
   on adm.PERSON_UID = base.PERSON_UID
   
