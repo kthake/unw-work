@@ -3,8 +3,8 @@ select TYPE,
        ROWNUM "SORT"
 from
   (
-  select round(RETURNED/RETURNABLE,4) * 100 "ACTUAL_RETURN_RATE",
-         round((RETURNED + RED + YELLOW + GREEN)/RETURNABLE,4) * 100 "PROJECTED_RETURN_RATE",
+  select round(nullif(RETURNED,0)/nullif(RETURNABLE,0),4) * 100 "ACTUAL_RETURN_RATE",
+         round(nullif(RETURNED + RED + YELLOW + GREEN,0)/nullif(RETURNABLE,0),4) * 100 "PROJECTED_RETURN_RATE",
          RED + YELLOW + GREEN "TOTAL_POTENTIAL_RETURNS",
          RETURNED + RED + YELLOW + GREEN "PROJECTED_RETURNED",
          a.*
@@ -14,7 +14,7 @@ from
             count(distinct z1.PERSON_UID) "RETURNED",
             count(distinct case when z.COMPLETION_IND = 'Y' and z1.PERSON_UID is null
                                 then null
-                                when z.STUDENT_TYPE = 'O' or z.PROGRAM = 'ADDTL'
+                                when z.STUDENT_TYPE = 'O' or z.PROGRAM in ('ADDTL','NOND')
                                 then null
                                 else z.PERSON_UID
                            end) "RETURNABLE",
@@ -42,6 +42,8 @@ from
     where z.ACADEMIC_PERIOD_MOD = '20161'
           and z.COLLEGE = 'TR'
           and z.PRIMARY_PROGRAM_IND = 'Y'
+          and z.STUDENT_TYPE <> 'O'
+          and z.PROGRAM not in ('ADDTL','NOND')
           
     ) a
   ) b
